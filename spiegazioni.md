@@ -164,7 +164,8 @@ function App() {
 
 
 # *SETERROR* E *FINALLY*
- 
+
+
 `setError` e `.finally` sono entrambi metodi di JavaScript utilizzati nel contesto di questa applicazione React.
 
 1. **`setError`**: Questo è un metodo utilizzato per impostare lo stato di `error`. In React, quando si utilizza lo stato tramite `useState`, viene restituito un array con due elementi: il valore dello stato e una funzione per modificarlo. Quando chiami questa funzione (nel tuo caso `setError`), il valore dello stato viene aggiornato con il nuovo valore passato come argomento.
@@ -186,3 +187,57 @@ function App() {
    });
    ```
    Dopo che la promessa generata da `fetch` è stata risolta o rigettata, `.finally` viene eseguito per impostare la variabile locale `loading` su `false`, indicando che il caricamento dei dati è stato completato. Anche se ci sono stati errori nel recupero dei dati o se è andato tutto bene, questa operazione verrà eseguita.
+
+   # AGGIORNAMENTO SPIEGAZIONE 
+
+1. **Importazioni e definizioni di interfaccia**:
+   - Le importazioni iniziali includono `React`, `useState`, `useEffect` e `Link`, necessarie per la gestione dello stato e delle azioni nel componente React, nonché per la navigazione tramite React Router.
+   - È stata definita un'interfaccia `Product` per rappresentare la struttura dei prodotti ottenuti dalla chiamata API.
+   - È stata definita un'interfaccia `CartItem` che estende `Product` aggiungendo la proprietà `quantity` per tenere traccia della quantità di un prodotto nel carrello.
+   
+2. **Componente principale `App`**:
+   - Viene dichiarato il componente `App` che rappresenta l'intera applicazione.
+   - Sono stati definiti tre stati utilizzando il `useState` hook: `products` per memorizzare i prodotti ottenuti dalla chiamata API, `cart` per memorizzare i prodotti aggiunti al carrello e `[]` per tenere traccia dei prezzi dei prodotti nel carrello.
+   - Viene utilizzato l'`useEffect` hook per effettuare la chiamata API quando il componente viene montato.
+   - La funzione `addToCart` aggiunge un prodotto al carrello.
+   - La funzione `removeFromCart` rimuove un prodotto dal carrello.
+   - La funzione `calculateTotalPrice` calcola il prezzo totale dei prodotti nel carrello.
+   - Viene utilizzato `BrowserRouter` per avvolgere l'intera applicazione e abilitare la navigazione tramite React Router.
+   - Viene mostrato un elenco di prodotti e un pulsante "Carrello" che reindirizza alla pagina del carrello.
+
+3. **Pagina del carrello `CartPage`**:
+   - Viene definito il componente `CartPage`, che mostra i prodotti nel carrello e il prezzo totale.
+   - Viene utilizzato il componente `Link` per creare un link che reindirizza alla pagina principale.
+   - Viene mappato l'array `cart` per mostrare tutti i prodotti nel carrello.
+   - Ogni prodotto nel carrello viene visualizzato con il titolo, l'immagine, la quantità e un pulsante "Rimuovi" per rimuovere il prodotto dal carrello.
+   - Viene mostrato il prezzo totale dei prodotti nel carrello.
+
+
+# *LINK* E *BROWSERROUTER*
+   `Link` e `BrowserRouter` sono entrambi componenti forniti da `react-router-dom`, una libreria che offre funzionalità di gestione della navigazione in React.
+
+1. **`Link`**:
+   - Il componente `Link` viene utilizzato per creare un link tra diverse "pagine" della tua Single Page Application (SPA).
+   - Funziona sostanzialmente come un normale tag `<a>` HTML, ma anziché caricare una nuova pagina, utilizza React Router per aggiornare l'URL e renderizzare il componente associato all'URL senza dover effettuare una richiesta HTTP.
+   - Quando si fa clic su un componente `Link`, React Router intercetta l'evento di clic e gestisce la navigazione senza dover ricaricare l'intera pagina.
+
+Esempio:
+```javascript
+<Link to="/cart">
+  <button>Carrello</button>
+</Link>
+```
+In questo esempio, viene creato un link che reindirizza l'utente alla pagina del carrello quando si fa clic sul pulsante "Carrello".
+
+2. **`BrowserRouter`**:
+   - `BrowserRouter` è un componente wrapper che fornisce il contesto per la gestione delle rotte (routes) tramite React Router.
+   - Viene utilizzato per avvolgere l'intera applicazione e abilitare la navigazione basata sulle rotte.
+   - `BrowserRouter` utilizza la parte del percorso dell'URL (dopo il dominio) per determinare quale componente renderizzare in base alla rotta specificata.
+
+Esempio:
+```javascript
+<BrowserRouter>
+  <App />
+</BrowserRouter>
+```
+In questo esempio, l'intera applicazione, rappresentata dal componente `App`, è avvolta dal componente `BrowserRouter`. Ciò consente a React Router di gestire la navigazione all'interno dell'applicazione in base alle rotte specificate.
