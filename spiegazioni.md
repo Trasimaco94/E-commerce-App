@@ -241,3 +241,212 @@ Esempio:
 </BrowserRouter>
 ```
 In questo esempio, l'intera applicazione, rappresentata dal componente `App`, è avvolta dal componente `BrowserRouter`. Ciò consente a React Router di gestire la navigazione all'interno dell'applicazione in base alle rotte specificate.
+
+# AGGIORNAMENTO
+
+Nel codice fornito ci sono casi di props drilling. Il props drilling si verifica quando si passano props attraverso più livelli di componenti, anche quando alcuni di questi componenti non hanno bisogno direttamente di quelle props. Nel codice fornito, il props drilling si verifica quando passiamo le props `cart` e `removeFromCart` dal componente `App` al componente `CartPage`.
+
+Il componente `App` gestisce lo stato del carrello e contiene anche la funzione `removeFromCart`. Queste informazioni vengono passate al componente `CartPage` attraverso props. Anche se il componente `CartPage` non ha bisogno direttamente di queste informazioni per il suo funzionamento interno, esse vengono passate attraverso i livelli intermedi di componenti. Questo è un esempio di props drilling.
+
+Per eliminare il props drilling, si può utilizzare il Context API di React. Invece di passare esplicitamente le props `cart` e `removeFromCart` attraverso tutti i livelli di componenti, si possono fornire queste informazioni utilizzando un context. Ecco come si potrebbe modificare il codice per utilizzare il Context API:
+
+```jsx
+import React, { useState, useEffect, createContext, useContext } from "react";
+import { BrowserRouter as Router, Link, Route } from "react-router-dom";
+import "./App.css";
+
+interface Product {
+  qty: number;
+  userId: number;
+  title: string;
+  description: string;
+  id: number;
+  price: number;
+  image: string;
+  thumbnail: string;
+}
+
+interface CartItem extends Product {
+  quantity: number;
+}
+
+const CartContext = createContext<{
+  cart: CartItem[];
+  removeFromCart: (productId: number) => void;
+}>({
+  cart: [],
+  removeFromCart: () => {}
+});
+
+function App() {
+  const [products, setProducts] = useState<Product[] | null>(null);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  
+  useEffect(() => {
+    // Fetch dei prodotti
+    fetch("https://mockend.up.railway.app/api/products")
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Failed to fetch data");
+        }
+        return response.json();
+      })
+      .then((data: Product[]) => {
+        setProducts(data);
+      })
+      .catch((error) => {
+        console.error("Error fetching products:", error);
+      });
+
+    // Cleanup function
+    return () => {
+      // Eseguito quando il componente si disimpegna
+    };
+  }, []);
+
+  const addToCart = (product: Product) => {
+    const existingItem = cart.find((item) => item.id === product.id);
+    if (existingItem) {
+      setCart(
+        cart.map((item) =>
+          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+        )
+      );
+    } else {
+      setCart([...cart, { ...product, quantity: 1 }]);
+    }
+  };
+
+  const removeFromCart = (productId: number) => {
+    setCart(cart.filter((item) => item.id !== productId));
+  };
+
+  const calculateTotalPrice = () => {
+    const totalPrice = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
+    return totalPrice;
+  };
+
+  return (
+    <Router>
+      <CartContext.Provider value={{ cart, removeFromCart }}>
+        <div className="App">
+          <h1>E-Commerce</h1>
+          <p>Benvenuto nel negozio online. Sfoglia i nostri prodotti!</p>
+          <Link to="/cart">
+            <button>Carrello</button>
+          </Link>
+          {products ? (
+            <ul>
+              {products.map((product) => (
+                <li key={product.id}>
+                  <img src={product.image} alt={product.title} />
+                  <h3>{product.title}</h3>
+                  <p>Quantità disponibile: {product.qty}</p>
+                  <button onClick={() => addToCart(product)}>Aggiungi al carrello</button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div>Loading...</div>
+          )}
+        </div>
+
+        <Route path="/cart">
+          <CartPage totalPrice={calculateTotalPrice()} />
+        </Route>
+      </CartContext.Provider>
+    </Router>
+  );
+}
+
+interface CartPageProps {
+  totalPrice: number;
+}
+
+function CartPage({ totalPrice }: CartPageProps) {
+  const { cart, removeFromCart } = useContext(CartContext);
+
+  return (
+    <div>
+      <h2>Carrello</h2>
+      <Link to="/">
+        <button>Home</button>
+
+
+      </Link>
+      <ul>
+        {cart.map((item) => (
+          <li key={item.id}>
+            <img src={item.image} alt={item.title} />
+            <h3>{item.title}</h3>
+            <p>Quantità: {item.quantity}</p>
+            <button onClick={() => removeFromCart(item.id)}>Rimuovi</button>
+          </li>
+        ))}
+      </ul>
+      <p>Prezzo totale: {totalPrice}</p>
+    </div>
+  );
+}
+
+export default App;
+```
+
+In questo esempio, abbiamo creato un `CartContext` utilizzando `createContext`, che contiene lo stato del carrello e la funzione `removeFromCart`. Nel componente `App`, avvolgiamo la nostra app con il `CartContext.Provider` per rendere questi dati disponibili globalmente. Nel componente `CartPage`, utilizziamo `useContext` per accedere al contesto e ottenere il carrello e la funzione `removeFromCart` senza passarli esplicitamente attraverso props. Questo elimina il props drilling e semplifica il passaggio dei dati attraverso la gerarchia dei componenti.
+
+
+Analizzeremo adesso il codice passo dopo passo per capire come funziona.
+
+1. **Definizione delle interfacce**:
+   - Le interfacce `Product` e `CartItem` definiscono la struttura dei dati per i prodotti e gli elementi del carrello.
+
+2. **Creazione del contesto**:
+   - Viene creato un `CartContext` utilizzando `createContext()`. Questo contesto contiene le informazioni sul carrello, come `cart` e `removeFromCart`.
+
+3. **Componente App**:
+   - Nel componente `App`, vengono gestiti gli stati per i prodotti (`products`) e il carrello (`cart`).
+   - Utilizziamo `useEffect` per effettuare una chiamata API per recuperare i prodotti una volta che il componente è stato montato.
+   - La funzione `addToCart` viene utilizzata per aggiungere un prodotto al carrello. Se il prodotto è già presente nel carrello, incrementiamo la quantità, altrimenti lo aggiungiamo al carrello con quantità 1.
+   - La funzione `removeFromCart` rimuove un prodotto dal carrello in base all'ID del prodotto.
+   - La funzione `calculateTotalPrice` calcola il prezzo totale del carrello moltiplicando il prezzo di ogni prodotto per la sua quantità e sommandoli tutti.
+
+4. **Rendering dei prodotti**:
+   - Nel rendering del componente `App`, mostriamo una lista di prodotti se sono stati caricati. Per ogni prodotto, mostriamo l'immagine, il titolo, la quantità disponibile e un pulsante per aggiungere il prodotto al carrello.
+
+5. **Routing e rendering della pagina del carrello**:
+   - Utilizziamo il componente `Router` di React Router per la gestione del routing.
+   - Quando l'URL corrisponde a `/cart`, viene renderizzato il componente `CartPage`.
+   - Nel componente `CartPage`, utilizziamo il `useContext` hook per accedere al `CartContext` e ottenere il carrello e la funzione `removeFromCart`.
+   - Mostriamo tutti gli elementi del carrello e un pulsante per rimuovere ciascun prodotto.
+   - Calcoliamo e mostriamo il prezzo totale del carrello.
+
+Questo è un riassunto del funzionamento del codice. Il contesto (`CartContext`) ci consente di evitare il props drilling, consentendo a componenti figli come `CartPage` di accedere direttamente alle informazioni sul carrello senza doverle passare esplicitamente attraverso props.
+
+## NEL DETTAGLIO
+
+1. **Definizione delle interfacce**:
+   Le interfacce `Product` e `CartItem` definiscono la struttura dei dati per i prodotti e gli elementi del carrello. Questo aiuta a garantire che i dati siano conformi al formato previsto e facilita la gestione dei dati all'interno dell'applicazione.
+
+2. **Creazione del contesto**:
+   - Utilizzando `createContext()`, definiamo un contesto chiamato `CartContext`.
+   - Questo contesto conterrà le informazioni sul carrello, come la lista dei prodotti nel carrello (`cart`) e la funzione per rimuovere un prodotto dal carrello (`removeFromCart`).
+
+3. **Componente App**:
+   - Nel componente `App`, vengono gestiti gli stati per i prodotti (`products`) e il carrello (`cart`).
+   - Utilizziamo `useEffect` per effettuare una chiamata API per recuperare i prodotti una volta che il componente è stato montato. Quando i dati sono disponibili, vengono impostati nello stato `products`.
+   - La funzione `addToCart` viene utilizzata per aggiungere un prodotto al carrello. Controlliamo se il prodotto è già presente nel carrello. Se sì, aggiorniamo la quantità del prodotto nel carrello. Se non è presente, aggiungiamo il prodotto al carrello con quantità 1.
+   - La funzione `removeFromCart` rimuove un prodotto dal carrello in base all'ID del prodotto.
+   - La funzione `calculateTotalPrice` calcola il prezzo totale del carrello sommando il prezzo di ogni prodotto moltiplicato per la sua quantità.
+
+4. **Rendering dei prodotti**:
+   - Nel rendering del componente `App`, mostriamo una lista di prodotti se sono stati caricati. Utilizziamo una struttura condizionale per mostrare un messaggio di caricamento se i dati dei prodotti non sono ancora stati caricati.
+   - Per ogni prodotto, mostriamo l'immagine, il titolo, la quantità disponibile e un pulsante per aggiungere il prodotto al carrello.
+
+5. **Routing e rendering della pagina del carrello**:
+   - Utilizziamo il componente `Router` di React Router per gestire il routing dell'applicazione.
+   - Quando l'URL corrisponde a `/cart`, viene renderizzato il componente `CartPage`.
+   - Nel componente `CartPage`, utilizziamo il `useContext` hook per accedere al `CartContext` e ottenere il carrello (`cart`) e la funzione `removeFromCart`.
+   - Mostriamo tutti gli elementi presenti nel carrello con le relative informazioni, come l'immagine, il titolo, la quantità e un pulsante per rimuovere il prodotto dal carrello.
+   - Calcoliamo e mostriamo il prezzo totale del carrello utilizzando la funzione `calculateTotalPrice`.
+
+Utilizzare il contesto (`CartContext`) ci permette di evitare il props drilling, consentendo ai componenti figli di accedere direttamente alle informazioni sul carrello senza doverle passare esplicitamente attraverso props. Ciò semplifica la gestione dello stato all'interno dell'applicazione e migliora la leggibilità del codice.
